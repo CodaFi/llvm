@@ -631,6 +631,45 @@ struct FunCloner {
         LLVMSetCleanup(Dst, LLVMIsCleanup(Src));
         break;
       }
+      case LLVMCleanupRet: {
+        LLVMValueRef CatchPad = CloneValue(LLVMGetOperand(Src, 0));
+        LLVMBasicBlockRef BB = CloneValue(LLVMGetOperand(Src, 1));
+        Dst = LLVMBuildCleanupRet(Builder, CatchPad, BB);
+        break;
+      }
+      case LLVMCatchRet: {
+        LLVMValueRef CatchPad = CloneValue(LLVMGetOperand(Src, 0));
+        LLVMBasicBlockRef BB = CloneValue(LLVMGetOperand(Src, 1));
+        Dst = LLVMBuildCatchRet(Builder, CatchPad, BB);
+        break;
+      }
+      case LLVMCatchPad: {
+        LLVMValueRef ParentPad = CloneValue(LLVMGetOperand(Src, 0));
+        SmallVector<LLVMValueRef, 8> Args;
+        int ArgCount = LLVMGetNumArgOperands(Src);
+        for (int i = 1; i <= ArgCount; i++)
+          Args.push_back(CloneValue(LLVMGetOperand(Src, i)));
+        Dst = LLVMBuildCatchPad(Builder, ParentPad,
+                                Args.data(), ArgCount, Name);
+        break;
+      }
+      case LLVMCleanupPad: {
+        LLVMValueRef ParentPad = CloneValue(LLVMGetOperand(Src, 0));
+        SmallVector<LLVMValueRef, 8> Args;
+        int ArgCount = LLVMGetNumArgOperands(Src);
+        for (int i = 1; i <= ArgCount; i++)
+          Args.push_back(CloneValue(LLVMGetOperand(Src, i)));
+        Dst = LLVMBuildCleanupPad(Builder, ParentPad,
+                                  Args.data(), ArgCount, Name);
+        break;
+      }
+      case LLVMCatchSwitch: {
+        LLVMValueRef ParentPad = CloneValue(LLVMGetOperand(Src, 0));
+        LLVMBasicBlockRef UnwindBB = CloneValue(LLVMGetOperand(Src, 1));
+        unsigned NumHandlers = LLVMCountHandlers(Src);
+        Dst = LLVMBuildCatchSwitch(Builder, ParentPad, UnwindBB, NumHandlers);
+        break;
+      }
       case LLVMExtractValue: {
         LLVMValueRef Agg = CloneValue(LLVMGetOperand(Src, 0));
         if (LLVMGetNumIndices(Src) != 1)
